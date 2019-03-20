@@ -1,17 +1,28 @@
+
 package controller;
 
 import configuration.DBConnector;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.stage.Stage;
+import service.AlertService;
+import service.WindowService;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.InputMismatchException;
+import java.util.Map;
 
 public class RegisterController {
 
@@ -37,67 +48,75 @@ public class RegisterController {
         pf_password.clear();
         pf_password2.clear();
     }
+
     @FXML
     void clearAction(ActionEvent event) {
         clear();
     }
-    private void insertData() {
+    private void insertData() throws IOException {
         // rejestracja użytkownika na podstawie podanych pól
         try {
-            if(!pf_password.getText().equals(pf_password2.getText())) {
-                throw new InputMismatchException();
-
+            // sprawdzam czy hasła są jednokowe
+            if (tf_login.getText().equals("") || pf_password.getText().equals("") || tf_name.getText().equals("") || tf_lastname.getText().equals("")) {
+                throw new NullPointerException();
             }
-            ps = connection.prepareStatement("INSERT INTO users VALUES (default, ?, ?, ?, ?, default, default, default )");
+            if (!pf_password.getText().equals(pf_password2.getText())) {
+                throw new InputMismatchException();
+            }
+            ps = connection.prepareStatement("INSERT INTO users VALUES (default, ?, ?, ?, ?, default, default, default)");
             ps.setString(1, tf_name.getText());
-            ps.setString(2,tf_lastname.getText());
+            ps.setString(2, tf_lastname.getText());
             ps.setString(3, tf_login.getText());
             ps.setString(4, pf_password.getText());
             ps.executeUpdate();
-            Alert a = new Alert(Alert.AlertType.INFORMATION);
-            a.setTitle("Rejestracja");
-            a.setHeaderText("Zarejestrowano użytkownika ");
-            a.setContentText("Zarejestrowano użytkownika" + tf_login.getText());
-            a.show();
+            AlertService.showAlert(Alert.AlertType.INFORMATION, "Rejestracja", "Zareejstrowano użytkownika");
+            // czyszczenie pól
+            clear();
+            // zamknięcie okna i przejście do logowania
+            WindowService.showWindow("/view/loginView.fxml", "Panel logowania");
+            WindowService.closeWindow(tf_login);
 
-        } catch (SQLException e) {
-            Alert a = new Alert(Alert.AlertType.ERROR);
-            a.setTitle("Błąd");
-            a.setHeaderText("Podany login już istnieje w bazie danych");
-            a.setContentText("Musisz podać inny login");
-            a.show();
-        } catch (InputMismatchException e) {
-                Alert a = new Alert(Alert.AlertType.ERROR);
-                a.setTitle("Błąd");
-                a.setHeaderText("Podanye hasła nie są jednakowe");
-                a.setContentText("Musisz podać jednakowe hasła");
-                a.show();
+        } catch (NullPointerException e){
+            AlertService.showAlert(Alert.AlertType.INFORMATION, "Brak wartości", "Uzupełnij brajujące pola");
+        } catch (SQLException e){
+            AlertService.showAlert(Alert.AlertType.INFORMATION, "Błędny login", "Login istnieje w bazie danych");
+        } catch (InputMismatchException e){
+            AlertService.showAlert(Alert.AlertType.INFORMATION, "Różne hasła", "Hasła muszą być jednakowe");
         }
     }
-
     @FXML
-    void keyRegisterAction(KeyEvent event) {
-        // dla entera - rejesracja
-        // dla esc - clear
-//        if(?)
+    void keyRegisterAction(KeyEvent event) throws IOException {
+//         dla entera - rejestracja
+//         dla esc - clear
+//        if(event.getCode() == KeyCode.ENTER) {
+//            insertData();
+//        } else if(event.getCode() == KeyCode.ESCAPE){
+//            clear();
+//        }
+        Map<KeyCode, Integer> keyCodeToInteger = new HashMap<>();
+        keyCodeToInteger.put(KeyCode.ENTER, 1);
+        keyCodeToInteger.put(KeyCode.ESCAPE, 2);
 
+        switch (keyCodeToInteger.get(event.getCode())){
+            case 1:
+                insertData();
+                break;
+            case 2:
+                clear();
+                break;
+        }
     }
-
     @FXML
-    void registerAction(ActionEvent event) {
+    void registerAction(ActionEvent event) throws IOException {
         insertData();
     }
-
-    //globalny obiekt połączenia do bazy danych
+    // globalne obiekty połączenia do bazy danych
     DBConnector dbConnector;
     Connection connection;
+    // globalny obiekt do wykonywania zapytań
     PreparedStatement ps;
-
     public void initialize() throws SQLException {
         dbConnector = new DBConnector();
         connection = dbConnector.initConnection();
     }
-
-
 }
-

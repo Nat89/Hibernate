@@ -1,3 +1,4 @@
+
 package controller;
 
 import configuration.DBConnector;
@@ -6,9 +7,12 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import service.AlertService;
+import service.WindowService;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -26,17 +30,19 @@ public class LoginController {
 
     @FXML
     void loginAction(ActionEvent event) throws SQLException {
-    ps = connection.prepareStatement("SELECT * FROM users WHERE email = ? AND password = ?");
-    ps.setString(1, tf_login.getText());
-    ps.setString(2, pf_password.getText());
-    // wykonuje zapytanie
+        // przygotowuję zapytanie
+        ps = connection.prepareStatement("SELECT * FROM users WHERE email = ? AND password = ?");
+        // przypisauję wartości do ?
+        ps.setString(1, tf_login.getText());
+        ps.setString(2, pf_password.getText());
+        // wykonuje zapytanie
         // SELECT -> executeQuery()
-        //INSERT, UPDATE, DELETE, CREATE, DROP  -> EXECUTEUPDATE()
-        // wykonalem zapytanie i zwracam wynik tablicy wielowymiarowej
+        // INSERT, UPDATE, DELETE, CREATE, DROP -> executeUpdate()
+        // wykonałem zapytanie i zwracam wynik do tablicy wielowymiarowej
         ResultSet resultSet = ps.executeQuery();
-        // przesuwam wskaznik na pierwsza pozycje i sprawdzam jednoczesnie czy jest niepusta
-        if(resultSet.next()) {
-            // jezeli niepusta to wyciagam zawartosc
+        // przesuwam wskaźnik na pierwszą pozycję i sprawdzam czy jest niepusta
+        if(resultSet.next()){
+            // jeżeli jest niepusta to wyciągam zawartość
             System.out.println(resultSet.getInt(1));
             System.out.println(resultSet.getString(2));
             System.out.println(resultSet.getString(3));
@@ -46,24 +52,20 @@ public class LoginController {
             System.out.println(resultSet.getString(7));
             System.out.println(resultSet.getDate(8));
         } else {
-            System.out.println("Błąd logowania!");
+            AlertService.showAlert(Alert.AlertType.INFORMATION, "Błąd logowania", "Zarejestruj się!");
         }
-
     }
 
     @FXML
     void registerAction(ActionEvent event) throws IOException {
         // utworzenie okna nowego widoku
-        Stage stage = new Stage();
-        Parent root = FXMLLoader.load(getClass().getResource("/view/registerView.fxml"));
-        stage.setTitle("Panel rejestracji");
-        stage.setScene(new Scene(root));
-        stage.show();
-
+        WindowService.showWindow("/view/registerView.fxml", "Panel rejestracji");
+        WindowService.closeWindow(tf_login);
     }
-    //globalny obiekt połączenia do bazy danych
+    // globalne obiekty połączenia do bazy danych
     DBConnector dbConnector;
     Connection connection;
+    // globalny obiekt do wykonywania zapytań
     PreparedStatement ps;
     public void initialize() throws SQLException {
         dbConnector = new DBConnector();
